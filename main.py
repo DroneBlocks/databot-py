@@ -1,5 +1,5 @@
 import asyncio
-from databot import Config, Databot
+from databot.databot import Config, Databot
 
 async def main():
     config: Config = Config()
@@ -11,5 +11,8 @@ async def main():
 
     databot: Databot = Databot(config)
     await databot.connect()
+
+def callback():
+    print ("got data")
 
 asyncio.run(main())
