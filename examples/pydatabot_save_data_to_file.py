@@ -1,3 +1,9 @@
+from pathlib import Path
+import sys
+
+root_dir = str(Path(__file__).resolve().parent.parent)
+sys.path.append(root_dir)
+
 import json
 from pathlib import Path
 import logging
@@ -16,14 +22,12 @@ class SaveToFileDatabotCollector(PyDatabot):
         self.record_number = 0
 
     def process_databot_data(self, epoch, data):
-
         with self.file_path.open("a", encoding="utf-8") as f:
             data['timestamp'] = epoch
             f.write(json.dumps(data))
             f.write("\n")
             self.logger.info(f"wrote record[{self.record_number}]: {epoch}")
             self.record_number = self.record_number + 1
-
 
 
 def main():

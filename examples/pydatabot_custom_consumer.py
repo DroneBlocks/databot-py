@@ -1,4 +1,10 @@
-from databot.PyDatabot import PyDatabot, DatabotConfig, DatabotBLEConfig
+from pathlib import Path
+import sys
+
+root_dir = str(Path(__file__).resolve().parent.parent)
+sys.path.append(root_dir)
+
+from databot.PyDatabot import PyDatabot, DatabotConfig
 
 
 class CustomPyDatabotConsumer(PyDatabot):

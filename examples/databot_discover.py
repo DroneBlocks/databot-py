@@ -1,6 +1,6 @@
 import asyncio
 
-from bleak import BleakScanner, BLEDevice
+from bleak import BleakScanner
 
 
 async def main():
