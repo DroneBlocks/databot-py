@@ -1,34 +1,29 @@
 import json
 from pathlib import Path
+import logging
 
 from databot.PyDatabot import PyDatabot, DatabotConfig
 
 
 class SaveToFileDatabotCollector(PyDatabot):
 
-    async def run_queue_consumer(self):
-        self.logger.info("Starting queue consumer")
-        file_name = "data/test_data.txt"
-        file_path = Path(file_name)
-        if file_path.exists():
-            file_path.unlink(missing_ok=True)
+    def __init__(self, databot_config: DatabotConfig, log_level: int = logging.INFO):
+        super().__init__(databot_config, log_level)
+        self.file_name = "data/test_data.txt"
+        self.file_path = Path(self.file_name)
+        if self.file_path.exists():
+            self.file_path.unlink(missing_ok=True)
+        self.record_number = 0
 
-        with file_path.open("w", encoding="utf-8") as f:
+    def process_databot_data(self, epoch, data):
 
-            for i in range(0, 30):
-                # Use await asyncio.wait_for(queue.get(), timeout=1.0) if you want a timeout for getting data.
-                epoch, data = await self.queue.get()
-                if data is None:
-                    self.logger.info(
-                        "Got message from client about disconnection. Exiting consumer loop..."
-                    )
-                    break
-                else:
-                    data['timestamp'] = epoch
-                    f.write(json.dumps(data))
-                    f.write("\n")
-                    self.logger.info(f"wrote record[{i}]: {epoch}")
-            print("Done collecting data.  Safe to exit program")
+        with self.file_path.open("a", encoding="utf-8") as f:
+            data['timestamp'] = epoch
+            f.write(json.dumps(data))
+            f.write("\n")
+            self.logger.info(f"wrote record[{self.record_number}]: {epoch}")
+            self.record_number = self.record_number + 1
+
 
 
 def main():

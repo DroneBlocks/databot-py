@@ -251,8 +251,20 @@ class PyDatabot:
                     "Got message from client about disconnection. Exiting consumer loop..."
                 )
                 break
-            else:
-                self.logger.info("Received callback data via async queue at %s: %r", epoch, data)
+
+            self.process_databot_data(epoch, data)
+
+    def process_databot_data(self, epoch, data):
+        """
+        Override this function to custom process databot data
+        :param epoch:
+        :type epoch:
+        :param data:
+        :type data:
+        :return:
+        :rtype:
+        """
+        self.logger.info("Received callback data via async queue at %s: %r", epoch, data)
 
     async def async_run(self):
         client_task = self.connect()
