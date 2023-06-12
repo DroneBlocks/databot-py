@@ -22,7 +22,7 @@ Recommended steps to install locally
 
 ### Locate the Databot BlueTooth address
 
-run the file, `extras/databot_discovery.py`
+run the file, `examples/databot_discovery.py`
 
 If the Databot BLE device address can be found it will be printed in the terminal.  You will need this address when configuring teh PyDatabot instance.
 
@@ -38,10 +38,10 @@ For any custom processing of the databot data, a custom databot consumer is need
 
 For an example and test of how to do this see:
 
-`extras/pydatabot_custom_consumer.py`
+`examples/pydatabot_custom_consumer.py`
 
 ### Save databot data to file
 
 This example shows how to write the collected values to a file for later processing
 
-`extras/pydatabot_save_data_to_file.py`
+`examples/pydatabot_save_data_to_file.py`
