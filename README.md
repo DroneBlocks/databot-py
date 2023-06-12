@@ -45,3 +45,9 @@ For an example and test of how to do this see:
 This example shows how to write the collected values to a file for later processing
 
 `examples/pydatabot_save_data_to_file.py`
+
+### View Ambient Light Sensor Values
+
+This example shows how to read ambient light sensor values
+
+`examples/pydatabot_light_level_example.py`
