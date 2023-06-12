@@ -22,9 +22,13 @@ Recommended steps to install locally
 
 ### Locate the Databot BlueTooth address
 
-run the file, `examples/databot_discovery.py`
+With the databot turned on, run the file:
 
-If the Databot BLE device address can be found it will be printed in the terminal.  You will need this address when configuring teh PyDatabot instance.
+`examples/databot_discovery.py`
+
+If the Databot BLE device address can be found it will be printed in the terminal.  You will need this address when configuring the PyDatabot instance.
+
+Specifically in the examples.
 
 ### Simple Databot interfacing to print data values
 
