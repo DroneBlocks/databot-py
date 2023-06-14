@@ -10,6 +10,8 @@ async def main():
             print("""Update databot/PyDatabot.py DatabotConfig class, the address attribute with the value below
             """)
             print(d.address)
+            with open("./databot_address.txt", "w") as f:
+                f.write(d.address)
             break
     else:
         print("The DB_databot device could not be found.  Be sure it is powered on")

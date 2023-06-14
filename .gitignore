@@ -130,3 +130,4 @@ dmypy.json
 .idea
 requirements.txt
 
+/examples/databot_address.txt

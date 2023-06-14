@@ -31,12 +31,15 @@ class SaveToFileDatabotCollector(PyDatabot):
 
 
 def main():
+    with open("./databot_address.txt", "r") as f:
+        databot_address = f.read()
+
     c = DatabotConfig()
     c.accl = True
     c.Laccl = True
     c.gyro = True
     c.magneto = False
-    c.address = "774B790E-35DE-4950-842D-81446C06240B"
+    c.address = databot_address
     db = SaveToFileDatabotCollector(c)
     db.run()
 

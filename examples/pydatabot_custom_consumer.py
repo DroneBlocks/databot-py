@@ -15,9 +15,12 @@ class CustomPyDatabotConsumer(PyDatabot):
 
 
 def main():
+    with open("./databot_address.txt", "r") as f:
+        databot_address = f.read()
+
     c = DatabotConfig()
     c.Laccl = True
-    c.address = "774B790E-35DE-4950-842D-81446C06240B"
+    c.address = databot_address
     db = CustomPyDatabotConsumer(c)
     db.run()
 
