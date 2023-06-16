@@ -12,10 +12,10 @@ def main():
         databot_address = f.read()
 
     c = DatabotConfig()
-    c.accl = True
-    c.Laccl = True
-    c.gyro = True
-    c.magneto =True
+    c.humTemp = True
+    c.refresh = 2000 # change the refresh rate to every 2 seconds
+    c.timeDec = 1 # change the decimals for the time to 1
+    c.decimal = 3 # have the humidity temp use 3 decimal plces
     c.address = databot_address
     db = PyDatabot(c)
     db.run()

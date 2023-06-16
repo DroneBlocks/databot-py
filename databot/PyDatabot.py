@@ -61,19 +61,19 @@ class DatabotBLEConfig:
 @dataclass(frozen=False)
 class DatabotLEDConfig:
     state: bool
-    R: int
-    Y: int
-    B: int
+    R: int # RED: 0-255
+    Y: int # Green: 0-255
+    B: int # Blue: 0-255
 
     def __getitem__(self, item):
         return getattr(self, item)
 
 @dataclass(frozen=True)
 class DefaultDatabotConfig:
-    refresh: int = 500
-    decimal: int = 2
-    timeFactor: int = 1000
-    timeDec: int = 2
+    refresh: int = 500 # units = ms.  Number of milliseconds between polling for new data values
+    decimal: int = 2 # number of decimal places for the returned sensor values
+    timeFactor: int = 1000 # 1000 = the epoch time is reported as seconds.
+    timeDec: int = 2 # number of decimal places reported by the databot epoch time
     accl: bool = False
     Laccl: bool = False
     gyro: bool = False

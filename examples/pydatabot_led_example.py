@@ -4,7 +4,7 @@ import sys
 root_dir = str(Path(__file__).resolve().parent.parent)
 sys.path.append(root_dir)
 
-from databot.PyDatabot import PyDatabot, DatabotConfig
+from databot.PyDatabot import PyDatabot, DatabotConfig, DatabotLEDConfig
 
 
 def main():
@@ -12,10 +12,12 @@ def main():
         databot_address = f.read()
 
     c = DatabotConfig()
-    c.accl = True
-    c.Laccl = True
-    c.gyro = True
-    c.magneto =True
+    c.ambLight = True
+
+    c.led1 = DatabotLEDConfig(True, 255,0,0)
+    c.led2 = DatabotLEDConfig(True, 0,255,0)
+    c.led3 = DatabotLEDConfig(True, 0, 0, 255)
+
     c.address = databot_address
     db = PyDatabot(c)
     db.run()
