@@ -52,6 +52,15 @@ This example shows how to write the collected values to a file for later process
 
 ### View Ambient Light Sensor Values
 
-This example shows how to read ambient light sensor values
+This example shows how to read ambient light sensor values.  Start the example and then cover the sensor with your hand.
+
+Notice the light level values goes down.
+
+`examples/pydatabot_light_level_example.py`
+
+### Breath Detector
+
+This example shows how to read co2 level.  Start the example and then breath on the databot.
+Watch the co2 values go up. 
 
 `examples/pydatabot_light_level_example.py`
