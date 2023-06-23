@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='databot-py',
-    version='0.0.2',
+    version='0.0.3',
     packages=['databot'],
     include_package_data=True,
     package_data={
@@ -16,8 +16,8 @@ setup(
     },
     url='https://github.com/dbaldwin/databot-py',
     license='MIT',
-    author='Dennis Baldwin',
-    author_email='db@droneblocks.io',
+    author='Pat Ryan, Dennis Baldwin',
+    author_email='theyoungsoul@gmail.com, db@droneblocks.io',
     description='databot Python Library',
     long_description=long_description,
     long_description_content_type="text/markdown",
