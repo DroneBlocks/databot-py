@@ -127,3 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.idea
+requirements.txt
+
+/examples/databot_address.txt
+/examples/data/test_data.txt
