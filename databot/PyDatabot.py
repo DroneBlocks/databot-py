@@ -10,6 +10,11 @@ from pathlib import Path
 class DatabotDeviceNotFoundError(Exception):
     pass
 
+class StopGatheringData(Exception):
+    pass
+
+class ProcessDatabotDataComplete(Exception):
+    pass
 
 response_mapping = {
     "a": "acceleration_x",
@@ -198,7 +203,7 @@ class PyDatabot:
             Runs the PyDatabot synchronously.
     """
     def __init__(self, databot_config: DatabotConfig, log_level: int = logging.INFO):
-        self.start_collecting_data: bool = False
+        self.collect_data: bool = False
         self.device: BLEDevice | None = None
         self.databot_config: DatabotConfig = databot_config
         self.ble_config: DatabotBLEConfig = DatabotBLEConfig()
@@ -207,6 +212,26 @@ class PyDatabot:
         logging.basicConfig(level=log_level)
         if databot_config.address is None or databot_config.address == "":
             raise ValueError("DatabotConfig must have the address property set.")
+
+    @staticmethod
+    def get_databot_address(force_address_read:bool = False):
+        async def async_save_databot_address():
+            devices = await BleakScanner.discover()
+            for d in devices:
+                if d.name == "DB_databot":
+                    print(f"Databot Address: {d.address}")
+                    with open("./databot_address.txt", "w") as f:
+                        f.write(d.address)
+                    break
+            else:
+                print("The DB_databot device could not be found.  Be sure it is powered on")
+
+        if force_address_read or not Path("./databot_address.txt").exists():
+            asyncio.run(async_save_databot_address())
+
+        with open("./databot_address.txt", "r") as f:
+            databot_address = f.read()
+        return databot_address
 
     def _get_databot_config_json(self):
         # my experience has been that creating
@@ -245,10 +270,10 @@ class PyDatabot:
         return bytearray(json.dumps(json_config), 'utf-8')
 
     def start_collecting_data(self):
-        self.start_collecting_data = True
+        self.collect_data = True
 
     def stop_collecting_data(self):
-        self.start_collecting_data = False
+        self.collect_data = False
 
     async def connect(self):
         self.logger.info("connecting")
@@ -270,6 +295,8 @@ class PyDatabot:
                 await client.start_notify(read_char, self.process_sensor_data)
                 while True:
                     await asyncio.sleep(1)
+                    if not self.collect_data:
+                        raise StopGatheringData()
             finally:
                 self.logger.info("EXITING.. stop notify")
                 await client.stop_notify(read_char)
@@ -291,16 +318,19 @@ class PyDatabot:
     async def run_queue_consumer(self):
         self.logger.info("Starting queue consumer")
 
-        while True:
-            # Use await asyncio.wait_for(queue.get(), timeout=1.0) if you want a timeout for getting data.
-            epoch, data = await self.queue.get()
-            if data is None:
-                self.logger.info(
-                    "Got message from client about disconnection. Exiting consumer loop..."
-                )
-                break
+        try:
+            while True:
+                # Use await asyncio.wait_for(queue.get(), timeout=1.0) if you want a timeout for getting data.
+                epoch, data = await self.queue.get()
+                if data is None:
+                    self.logger.info(
+                        "Got message from client about disconnection. Exiting consumer loop..."
+                    )
+                    break
 
-            self.process_databot_data(epoch, data)
+                self.process_databot_data(epoch, data)
+        finally:
+            self.stop_collecting_data()
 
     def process_databot_data(self, epoch, data):
         """
@@ -322,16 +352,21 @@ class PyDatabot:
             await asyncio.gather(client_task, consumer_task)
         except DatabotDeviceNotFoundError:
             self.logger.error("Databot device not found")
+        except StopGatheringData:
+            self.logger.info("Stop gathering data")
+        except ProcessDatabotDataComplete:
+            self.logger.info("Completed Processing Data")
         except Exception as exc:
             self.logger.exception(exc)
 
         self.logger.info("Main method done.")
 
     def run(self):
+        self.start_collecting_data()
         asyncio.run(self.async_run())
 
 
-class SaveToFileDatabotCollector(PyDatabot):
+class PyDatabotSaveToFileDataCollector(PyDatabot):
     """
     SaveToFileDatabotCollector
 
@@ -352,7 +387,7 @@ class SaveToFileDatabotCollector(PyDatabot):
         process_databot_data(self, epoch, data)
             Processes the data received from the PyDatabot and saves it to the file.
     """
-    def __init__(self, databot_config: DatabotConfig, file_name: str, extra_data: dict,
+    def __init__(self, databot_config: DatabotConfig, file_name: str, extra_data: dict | None = None,
                  number_of_records_to_collect: int | None = None, log_level: int = logging.INFO):
         super().__init__(databot_config, log_level)
         self.file_name = f"{file_name}"
@@ -364,9 +399,12 @@ class SaveToFileDatabotCollector(PyDatabot):
         self.number_of_records_to_collect = number_of_records_to_collect
 
     def process_databot_data(self, epoch, data):
+        data['timestamp'] = epoch
+
         with self.file_path.open("a", encoding="utf-8") as f:
             # add the extra data as new columns
-            data = data.assign(**self.extra_data)
+            if self.extra_data is not None:
+                data = data.assign(**self.extra_data)
 
             f.write(json.dumps(data))
             f.write("\n")
@@ -374,7 +412,7 @@ class SaveToFileDatabotCollector(PyDatabot):
             self.record_number = self.record_number + 1
             if self.number_of_records_to_collect is not None:
                 if self.record_number >= self.number_of_records_to_collect:
-                    raise Exception("Done collecting data")
+                    raise ProcessDatabotDataComplete("Done collecting data")
 
 
 def main():
