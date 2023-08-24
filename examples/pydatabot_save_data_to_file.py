@@ -1,46 +1,20 @@
-from pathlib import Path
 import sys
+from pathlib import Path
 
 root_dir = str(Path(__file__).resolve().parent.parent)
 sys.path.append(root_dir)
 
-import json
-from pathlib import Path
-import logging
-
-from databot.PyDatabot import PyDatabot, DatabotConfig
-
-
-class SaveToFileDatabotCollector(PyDatabot):
-
-    def __init__(self, databot_config: DatabotConfig, log_level: int = logging.INFO):
-        super().__init__(databot_config, log_level)
-        self.file_name = "data/test_data.txt"
-        self.file_path = Path(self.file_name)
-        if self.file_path.exists():
-            self.file_path.unlink(missing_ok=True)
-        self.record_number = 0
-
-    def process_databot_data(self, epoch, data):
-        with self.file_path.open("a", encoding="utf-8") as f:
-            data['timestamp'] = epoch
-            f.write(json.dumps(data))
-            f.write("\n")
-            self.logger.info(f"wrote record[{self.record_number}]: {epoch}")
-            self.record_number = self.record_number + 1
+from databot.PyDatabot import PyDatabot, DatabotConfig, PyDatabotSaveToFileDataCollector
 
 
 def main():
-    with open("./databot_address.txt", "r") as f:
-        databot_address = f.read()
-
     c = DatabotConfig()
     c.accl = True
     c.Laccl = True
     c.gyro = True
     c.magneto = False
-    c.address = databot_address
-    db = SaveToFileDatabotCollector(c)
+    c.address = PyDatabot.get_databot_address()
+    db = PyDatabotSaveToFileDataCollector(c, file_name="data/test_data.txt", number_of_records_to_collect=10)
     db.run()
 
 
