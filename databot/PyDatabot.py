@@ -404,7 +404,7 @@ class PyDatabotSaveToFileDataCollector(PyDatabot):
         with self.file_path.open("a", encoding="utf-8") as f:
             # add the extra data as new columns
             if self.extra_data is not None:
-                data = data.assign(**self.extra_data)
+                data = data.update(**self.extra_data)
 
             f.write(json.dumps(data))
             f.write("\n")
