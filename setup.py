@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='databot-py',
-    version='0.0.5',
+    version='0.0.6',
     packages=['databot'],
     include_package_data=True,
     package_data={
