@@ -3,4 +3,4 @@ pandas
 jupyter
 scikit-learn
 seaborn
-asyncpg
+bottle

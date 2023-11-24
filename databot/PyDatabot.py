@@ -1,20 +1,169 @@
-from dataclasses import dataclass, asdict
 import asyncio
-import logging
-from bleak import BleakClient, BleakScanner, BLEDevice
-import time
 import json
+import logging
+import time
+from collections import deque
+from dataclasses import dataclass
 from pathlib import Path
+
+from bleak import BleakClient, BleakScanner, BLEDevice
 
 
 class DatabotDeviceNotFoundError(Exception):
     pass
 
+
 class StopGatheringData(Exception):
     pass
 
+
 class ProcessDatabotDataComplete(Exception):
     pass
+
+
+databot_sensors = {
+    'accl': {
+        'sensor_name': 'accl',
+        'friendly_name': 'Acceleration',
+        'save': False,
+        'display': False,
+        'data_columns': ['acceleration_x', 'acceleration_y', 'acceleration_z', 'absolute_acceleration']
+    },
+    'Laccl': {
+        'sensor_name': 'Laccl',
+        'friendly_name': 'Linear Acceleration',
+        'save': False,
+        'display': False,
+        'data_columns': ['linear_acceleration_x', 'linear_acceleration_y', 'linear_acceleration_z',
+                         'absolute_linear_acceleration']
+    },
+    'gyro': {
+        'sensor_name': 'gyro',
+        'friendly_name': 'Gyroscope',
+        'save': False,
+        'display': False,
+        'data_columns': ['gyro_x', 'gyro_y', 'gyro_z']
+    },
+    'magneto': {
+        'sensor_name': 'magneto',
+        'friendly_name': 'Magneto',
+        'save': False,
+        'display': False,
+        'data_columns': ['mag_x', 'mag_y', 'mag_z']
+
+    },
+    # 'IMUTemp': {
+    #     'sensor_name': 'IMUTemp',
+    #     'friendly_name': 'IMU Temperature',
+    #     'save': False,
+    #     'display': False
+    # },
+    # 'Etemp1': {
+    #     'sensor_name': 'Etemp1',
+    #     'friendly_name': 'External Temperature 1',
+    #     'save': False,
+    #     'display': False
+    # },
+    # 'Etemp2': {
+    #     'sensor_name': 'Etemp2',
+    #     'friendly_name': 'External Temperature 2',
+    #     'save': False,
+    #     'display': False
+    # },
+    'pressure': {
+        'sensor_name': 'pressure',
+        'friendly_name': 'Atmospheric Pressure',
+        'save': False,
+        'display': False,
+        'data_columns': ['pressure']
+    },
+    'alti': {
+        'sensor_name': 'alti',
+        'friendly_name': 'Altimeter',
+        'save': False,
+        'display': False,
+        'data_columns': ['altitude']
+    },
+    'ambLight': {
+        'sensor_name': 'ambLight',
+        'friendly_name': 'Ambient Light',
+        'save': False,
+        'display': False,
+        'data_columns': ['ambient_light_in_lux']
+    },
+    'rgbLight': {
+        'sensor_name': 'rgbLight',
+        'friendly_name': 'RGB Light',
+        'save': False,
+        'display': False,
+        'data_columns': ['r_light', 'g_light', 'b_light']
+    },
+    'UV': {
+        'sensor_name': 'UV',
+        'friendly_name': 'UltraViolet Light',
+        'save': False,
+        'display': False,
+        'data_columns': ['uv_index']
+    },
+    'co2': {
+        'sensor_name': 'co2',
+        'friendly_name': 'CO2',
+        'save': False,
+        'display': False,
+        'data_columns': ['co2']
+    },
+    'voc': {
+        'sensor_name': 'voc',
+        'friendly_name': 'Volatile Organic Compound',
+        'save': False,
+        'display': False,
+        'data_columns': ['voc']
+    },
+    'hum': {
+        'sensor_name': 'hum',
+        'friendly_name': 'Humidity',
+        'save': False,
+        'display': False,
+        'data_columns': ['humidity']
+    },
+    'humTemp': {
+        'sensor_name': 'humTemp',
+        'friendly_name': 'Humidity Adjusted Temperature',
+        'save': False,
+        'display': False,
+        'data_columns': ['humidity_temperature']
+    },
+    # 'Sdist': {
+    #     'sensor_name': 'Sdist',
+    #     'friendly_name': 'Short Distance',
+    #     'save': False,
+    #     'display': False,
+    #     'data_columns': ['distance']
+    # },
+    'noise': {
+        'sensor_name': 'noise',
+        'friendly_name': 'Noise',
+        'save': False,
+        'display': False,
+        'data_columns': ['noise_sound']
+    },
+    'Ldist': {
+        'sensor_name': 'Ldist',
+        'friendly_name': 'Long Distance',
+        'save': False,
+        'display': False,
+        'data_columns': ['distance']
+
+    },
+    'gesture': {
+        'sensor_name': 'gesture',
+        'friendly_name': 'Gesture',
+        'save': False,
+        'display': False,
+        'data_columns': ['gesture']
+    },
+
+}
 
 response_mapping = {
     "a": "acceleration_x",
@@ -202,6 +351,7 @@ class PyDatabot:
         run(self)
             Runs the PyDatabot synchronously.
     """
+
     def __init__(self, databot_config: DatabotConfig, log_level: int = logging.INFO):
         self.collect_data: bool = False
         self.device: BLEDevice | None = None
@@ -214,7 +364,7 @@ class PyDatabot:
             raise ValueError("DatabotConfig must have the address property set.")
 
     @staticmethod
-    def get_databot_address(force_address_read:bool = False):
+    def get_databot_address(force_address_read: bool = False):
         async def async_save_databot_address():
             devices = await BleakScanner.discover()
             for d in devices:
@@ -387,6 +537,7 @@ class PyDatabotSaveToFileDataCollector(PyDatabot):
         process_databot_data(self, epoch, data)
             Processes the data received from the PyDatabot and saves it to the file.
     """
+
     def __init__(self, databot_config: DatabotConfig, file_name: str, extra_data: dict | None = None,
                  number_of_records_to_collect: int | None = None, log_level: int = logging.INFO):
         super().__init__(databot_config, log_level)
@@ -413,6 +564,74 @@ class PyDatabotSaveToFileDataCollector(PyDatabot):
             if self.number_of_records_to_collect is not None:
                 if self.record_number >= self.number_of_records_to_collect:
                     raise ProcessDatabotDataComplete("Done collecting data")
+
+
+class PyDatabotSaveToQueueDataCollector(PyDatabot):
+    class FixedLengthQueue:
+        def __init__(self, max_size):
+            self.queue = deque(maxlen=max_size)
+
+        def add(self, item):
+            self.queue.append(item)
+
+        def display(self):
+            return list(self.queue)
+
+        def get_latest(self):
+            if self.queue:  # check if queue is not empty
+                return self.queue[-1]  # get the last item
+            else:
+                return None  # return None if the queue is empty
+
+    """
+    SaveToQueueDatabotCollector
+
+    A class that collects data from a PyDatabot and saves it to an internal Queue.
+
+    Attributes:
+        extra_data (dict): Additional data to be added as new columns to the data being collected.
+        number_of_records_to_collect (int | None): The maximum number of records to collect. If None, collect indefinitely.
+
+    Methods:
+        __init__(self, databot_config: DatabotConfig, file_name: str, extra_data: dict,
+                 number_of_records_to_collect: int | None = None, log_level: int = logging.INFO)
+            Initializes a new instance of SaveToFileDatabotCollector.
+
+        process_databot_data(self, epoch, data)
+            Processes the data received from the PyDatabot and saves it to the file.
+    """
+
+    def __init__(self, databot_config: DatabotConfig, extra_data: dict | None = None,
+                 queue_size: int = 1,
+                 number_of_records_to_collect: int | None = None, log_level: int = logging.INFO):
+        super().__init__(databot_config, log_level)
+
+        self.record_number = 0
+        self.queue_size = queue_size
+        self.q = PyDatabotSaveToQueueDataCollector.FixedLengthQueue(max_size=queue_size)
+        self.extra_data = extra_data
+        self.number_of_records_to_collect = number_of_records_to_collect
+
+    def process_databot_data(self, epoch, data):
+        data['timestamp'] = epoch
+
+        if self.extra_data is not None:
+            data.update(**self.extra_data)
+
+        item = json.dumps(data)
+        self.q.add(item)
+        self.logger.info(f"wrote record[{self.record_number}]")
+        self.record_number = self.record_number + 1
+        if self.number_of_records_to_collect is not None:
+            if self.record_number >= self.number_of_records_to_collect:
+                raise ProcessDatabotDataComplete("Done collecting data")
+
+    def get_item(self):
+        try:
+            item = self.q.get_latest()
+            return item
+        except:
+            return None
 
 
 def main():
