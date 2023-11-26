@@ -11,6 +11,7 @@ def main():
     c.hum = True
     c.pressure = True
     c.Etemp1 = True
+    c.refresh = 1000
     c.address = PyDatabot.get_databot_address()
     db = PyDatabotSaveToQueueDataCollector(c)
 

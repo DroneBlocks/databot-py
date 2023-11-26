@@ -65,14 +65,14 @@ databot_sensors = {
         'friendly_name': 'External Temperature 1',
         'save': False,
         'display': False,
-        'data_columns': ['external_temperature_1']
+        'data_columns': ['external_temp_1']
     },
     'Etemp2': {
         'sensor_name': 'Etemp2',
         'friendly_name': 'External Temperature 2',
         'save': False,
         'display': False,
-        'data_columns': ['external_temperature_2']
+        'data_columns': ['external_temp_2']
     },
     'pressure': {
         'sensor_name': 'pressure',
