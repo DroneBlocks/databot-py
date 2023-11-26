@@ -1,12 +1,14 @@
 import asyncio
 import json
 import logging
+import threading
 import time
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 
 from bleak import BleakClient, BleakScanner, BLEDevice
+from bottle import Bottle, run
 
 
 class DatabotDeviceNotFoundError(Exception):
@@ -58,18 +60,20 @@ databot_sensors = {
     #     'save': False,
     #     'display': False
     # },
-    # 'Etemp1': {
-    #     'sensor_name': 'Etemp1',
-    #     'friendly_name': 'External Temperature 1',
-    #     'save': False,
-    #     'display': False
-    # },
-    # 'Etemp2': {
-    #     'sensor_name': 'Etemp2',
-    #     'friendly_name': 'External Temperature 2',
-    #     'save': False,
-    #     'display': False
-    # },
+    'Etemp1': {
+        'sensor_name': 'Etemp1',
+        'friendly_name': 'External Temperature 1',
+        'save': False,
+        'display': False,
+        'data_columns': ['external_temperature_1']
+    },
+    'Etemp2': {
+        'sensor_name': 'Etemp2',
+        'friendly_name': 'External Temperature 2',
+        'save': False,
+        'display': False,
+        'data_columns': ['external_temperature_2']
+    },
     'pressure': {
         'sensor_name': 'pressure',
         'friendly_name': 'Atmospheric Pressure',
@@ -632,6 +636,38 @@ class PyDatabotSaveToQueueDataCollector(PyDatabot):
             return item
         except:
             return None
+
+
+# private reference to the queue based databot collector
+# used by the web server to retrieve databot data
+_web_databot: PyDatabotSaveToQueueDataCollector|None = None
+_bottle_app = None
+
+def databot_index():
+    if _web_databot is None:
+        return {
+            "message": "reference to PyDatabotSaveToQueueDataCollector is None"
+        }
+
+    item = _web_databot.get_item()
+    return item
+
+
+def _web_server_worker(host: str, port: int):
+    run(_bottle_app, host=host, port=port)
+
+
+def start_databot_webserver(queue_data_collector: PyDatabotSaveToQueueDataCollector,
+                            host: str, port: int) -> threading.Thread:
+    global _web_databot, _bottle_app
+    _bottle_app = Bottle()
+    _web_databot = queue_data_collector
+    _bottle_app.route(path="/", method="GET", callback=databot_index)
+
+    t = threading.Thread(target=_web_server_worker, args=(host, port,), daemon=True)
+    t.start()
+
+    return t
 
 
 def main():

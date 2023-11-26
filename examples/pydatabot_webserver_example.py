@@ -1,24 +1,4 @@
-import threading
-
-from databot.PyDatabot import PyDatabot, PyDatabotSaveToQueueDataCollector, DatabotConfig
-
-web_databot: PyDatabotSaveToQueueDataCollector = None
-
-from bottle import route, run
-
-
-@route('/')
-def index():
-    item = web_databot.get_item()
-    return item
-
-
-def worker(pydb: PyDatabotSaveToQueueDataCollector):
-    global web_databot
-    web_databot = pydb
-
-    run(host='localhost', port="8321")
-
+from databot.PyDatabot import start_databot_webserver, PyDatabot, PyDatabotSaveToQueueDataCollector, DatabotConfig
 
 def main():
     c = DatabotConfig()
@@ -28,11 +8,13 @@ def main():
     c.magneto = True
     c.ambLight = True
     c.co2 = True
+    c.hum = True
+    c.pressure = True
+    c.Etemp1 = True
     c.address = PyDatabot.get_databot_address()
     db = PyDatabotSaveToQueueDataCollector(c)
 
-    threading.Thread(target=worker, args=(db,), daemon=True).start()
-
+    t =start_databot_webserver(queue_data_collector=db, host="localhost", port=8321)
     db.run()
 
 
