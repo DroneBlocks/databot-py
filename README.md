@@ -64,3 +64,9 @@ This example shows how to read co2 level.  Start the example and then breath on 
 Watch the co2 values go up. 
 
 `examples/pydatabot_light_level_example.py`
+
+### Databot WebServer Access
+
+This example shows how to start a simple webserver interface to get the current values from the databot.
+
+`examples/pydatabot_webserver_example.py`
