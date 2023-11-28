@@ -1,3 +1,9 @@
+from pathlib import Path
+import sys
+
+root_dir = str(Path(__file__).resolve().parent.parent)
+sys.path.append(root_dir)
+
 from databot.PyDatabot import start_databot_webserver, PyDatabot, PyDatabotSaveToQueueDataCollector, DatabotConfig
 
 def main():

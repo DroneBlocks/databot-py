@@ -1,5 +1,10 @@
 import threading
 import time
+from pathlib import Path
+import sys
+
+root_dir = str(Path(__file__).resolve().parent.parent)
+sys.path.append(root_dir)
 
 from databot.PyDatabot import PyDatabot, PyDatabotSaveToQueueDataCollector, DatabotConfig
 
@@ -7,7 +12,7 @@ from databot.PyDatabot import PyDatabot, PyDatabotSaveToQueueDataCollector, Data
 def worker(pydb: PyDatabotSaveToQueueDataCollector, wait_time_in_sec:int):
     while True:
         item = pydb.get_item()
-        print(f'Working on {item}')
+        print(f'Data Item: {item}')
         time.sleep(wait_time_in_sec)
 
 

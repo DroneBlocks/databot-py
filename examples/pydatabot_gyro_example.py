@@ -8,12 +8,9 @@ from databot.PyDatabot import PyDatabot, DatabotConfig
 
 
 def main():
-    with open("./databot_address.txt", "r") as f:
-        databot_address = f.read()
-
     c = DatabotConfig()
     c.gyro = True
-    c.address = databot_address
+    c.address = PyDatabot.get_databot_address()
     db = PyDatabot(c)
     db.run()
 

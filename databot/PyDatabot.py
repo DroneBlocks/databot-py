@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from logging import Logger
 import threading
 import time
 from collections import deque
@@ -10,6 +11,7 @@ from pathlib import Path
 from bleak import BleakClient, BleakScanner, BLEDevice
 from bottle import Bottle, run
 
+_LOGGER: Logger = logging.getLogger(__name__)
 
 class DatabotDeviceNotFoundError(Exception):
     pass
@@ -362,7 +364,7 @@ class PyDatabot:
         self.databot_config: DatabotConfig = databot_config
         self.ble_config: DatabotBLEConfig = DatabotBLEConfig()
         self.queue: asyncio.Queue = asyncio.Queue()
-        self.logger: logging = logging.getLogger(__name__)
+        self.logger: Logger = _LOGGER
         logging.basicConfig(level=log_level)
         if databot_config.address is None or databot_config.address == "":
             raise ValueError("DatabotConfig must have the address property set.")
@@ -373,12 +375,12 @@ class PyDatabot:
             devices = await BleakScanner.discover()
             for d in devices:
                 if d.name == "DB_databot":
-                    print(f"Databot Address: {d.address}")
+                    _LOGGER.debug(f"Databot Address: {d.address}")
                     with open("./databot_address.txt", "w") as f:
                         f.write(d.address)
                     break
             else:
-                print("The DB_databot device could not be found.  Be sure it is powered on")
+                _LOGGER.warning("The DB_databot device could not be found.  Be sure it is powered on")
 
         if force_address_read or not Path("./databot_address.txt").exists():
             asyncio.run(async_save_databot_address())
@@ -571,6 +573,25 @@ class PyDatabotSaveToFileDataCollector(PyDatabot):
 
 
 class PyDatabotSaveToQueueDataCollector(PyDatabot):
+    """
+    SaveToQueueDatabotCollector
+
+    A class that collects data from a PyDatabot and saves it to an internal Queue.
+
+    Attributes:
+        extra_data (dict): Additional data to be added as new columns to the data being collected.
+        number_of_records_to_collect (int | None): The maximum number of records to collect. If None, collect indefinitely.
+        queue_size (int): The depth of the queue. By default the depth is one, meaning it only holds the very latest value.
+
+    Methods:
+        __init__(self, databot_config: DatabotConfig, file_name: str, extra_data: dict,
+                 number_of_records_to_collect: int | None = None, log_level: int = logging.INFO)
+            Initializes a new instance of SaveToFileDatabotCollector.
+
+        process_databot_data(self, epoch, data)
+            Processes the data received from the PyDatabot and saves it to the file.
+    """
+
     class FixedLengthQueue:
         def __init__(self, max_size):
             self.queue = deque(maxlen=max_size)
@@ -587,27 +608,11 @@ class PyDatabotSaveToQueueDataCollector(PyDatabot):
             else:
                 return None  # return None if the queue is empty
 
-    """
-    SaveToQueueDatabotCollector
-
-    A class that collects data from a PyDatabot and saves it to an internal Queue.
-
-    Attributes:
-        extra_data (dict): Additional data to be added as new columns to the data being collected.
-        number_of_records_to_collect (int | None): The maximum number of records to collect. If None, collect indefinitely.
-
-    Methods:
-        __init__(self, databot_config: DatabotConfig, file_name: str, extra_data: dict,
-                 number_of_records_to_collect: int | None = None, log_level: int = logging.INFO)
-            Initializes a new instance of SaveToFileDatabotCollector.
-
-        process_databot_data(self, epoch, data)
-            Processes the data received from the PyDatabot and saves it to the file.
-    """
 
     def __init__(self, databot_config: DatabotConfig, extra_data: dict | None = None,
                  queue_size: int = 1,
-                 number_of_records_to_collect: int | None = None, log_level: int = logging.INFO):
+                 number_of_records_to_collect: int | None = None,
+                 log_level: int = logging.INFO):
         super().__init__(databot_config, log_level)
 
         self.record_number = 0
@@ -631,6 +636,10 @@ class PyDatabotSaveToQueueDataCollector(PyDatabot):
                 raise ProcessDatabotDataComplete("Done collecting data")
 
     def get_item(self):
+        """
+        Get the oldest item from the queue
+        :return: JSON data record from the databot
+        """
         try:
             item = self.q.get_latest()
             return item
@@ -643,7 +652,7 @@ class PyDatabotSaveToQueueDataCollector(PyDatabot):
 _web_databot: PyDatabotSaveToQueueDataCollector|None = None
 _bottle_app = None
 
-def databot_index():
+def _databot_index():
     if _web_databot is None:
         return {
             "message": "reference to PyDatabotSaveToQueueDataCollector is None"
@@ -658,11 +667,11 @@ def _web_server_worker(host: str, port: int):
 
 
 def start_databot_webserver(queue_data_collector: PyDatabotSaveToQueueDataCollector,
-                            host: str, port: int) -> threading.Thread:
+                            host: str = "localhost", port: int = 8321) -> threading.Thread:
     global _web_databot, _bottle_app
     _bottle_app = Bottle()
     _web_databot = queue_data_collector
-    _bottle_app.route(path="/", method="GET", callback=databot_index)
+    _bottle_app.route(path="/", method="GET", callback=_databot_index)
 
     t = threading.Thread(target=_web_server_worker, args=(host, port,), daemon=True)
     t.start()

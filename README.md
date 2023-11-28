@@ -8,6 +8,42 @@ TBD Add instructions here to describe how to install the package into a project
 e.g.
 `pip install databot-py`
 
+## Classes
+
+### PyDatabot
+
+This class is the base class implementation for interacting with the databot over bluetooth.
+
+This class can be used directly and will print the data read from the databot.
+
+However, this class is really meant to be inherited from and the derived class should override the method `process_databot_data`.
+
+The `process_databot_data` method will be called for each data record from the databot and the derived class can then process the data in a specific way.
+
+### PyDatabotSaveToFileDataCollector
+
+This class extends the `PyDatabot` class and overrides the `process_databot_data` method to save values to a file.
+
+This class is used primarily to easily read values from the databot and save them to a file for future processing.
+
+### PyDatabotSaveToQueueDataCollector
+
+This class extends the `PyDatabot` class and overrides the `process_databot_data` method to save values to an internal queue.
+
+This class is used primarily with the databot webserver to provide the latest readings from the databot.
+
+## Local WebServer Interface
+
+A local web service interface is available to get data values from the databot.
+
+Create an instance of the `PyDatabotSaveToQueueDataCollector` class with the desired sensors configured.  
+
+Then call the function `start_databot_webserver` in the PyDatabot module passing a reference to the `PyDatabotSaveToQueueDataCollector`
+
+See the example in:
+
+`examples/pydatabot_webserver_example.py`
+
 ## Run Locally
 
 ### Install Local Requirements
@@ -15,18 +51,24 @@ e.g.
 Recommended steps to install locally
 
 * `pip install pip-tools` or `python -m pip install pip-tools`
-* `pip-compile --resolver=backtracking`
+* `pip-compile`
 * `pip-sync`
 
 ## Examples
 
 ### Locate the Databot BlueTooth address
 
-With the databot turned on, run the file:
+Every databot has a bluetooth address.  The find the address use the static method:
 
-`examples/databot_discovery.py`
+`PyDatabot.get_databot_address()`
 
-If the Databot BLE device address can be found it will be printed in the terminal.  You will need this address when configuring the PyDatabot instance.
+and it is used in the configration like:
+
+```python
+    c = DatabotConfig()
+    c.address = PyDatabot.get_databot_address()
+
+```
 
 Specifically in the examples.
 

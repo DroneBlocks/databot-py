@@ -8,8 +8,6 @@ from databot.PyDatabot import PyDatabot, DatabotConfig, DatabotLEDConfig
 
 
 def main():
-    with open("./databot_address.txt", "r") as f:
-        databot_address = f.read()
 
     c = DatabotConfig()
     c.ambLight = True
@@ -18,7 +16,7 @@ def main():
     c.led2 = DatabotLEDConfig(True, 0,255,0)
     c.led3 = DatabotLEDConfig(True, 0, 0, 255)
 
-    c.address = databot_address
+    c.address = PyDatabot.get_databot_address()
     db = PyDatabot(c)
     db.run()
 
