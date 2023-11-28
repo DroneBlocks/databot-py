@@ -70,7 +70,6 @@ and it is used in the configration like:
 
 ```
 
-Specifically in the examples.
 
 ### Simple Databot interfacing to print data values
 
@@ -112,3 +111,8 @@ Watch the co2 values go up.
 This example shows how to start a simple webserver interface to get the current values from the databot.
 
 `examples/pydatabot_webserver_example.py`
+
+You can then open a browser and navigate to:
+`http://localhost:8321`
+
+And the sensor values will be displayed as a JSON string.
