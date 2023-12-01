@@ -3,12 +3,27 @@ A simple bluetooth interface for databot sensors
 
 ## Install
 
-TBD Add instructions here to describe how to install the package into a project
+It is recommended that you use a package manager like `pip-tools` or `poetry` and do not rely on a existing requirements.txt
+
+The reason is that operating system dependent libraries need to be installed to support bluetooth.
+
+Basic installation, just pip install the `databot-py` package from PyPI.
 
 e.g.
 `pip install databot-py`
 
+If using pip-tools in your project then 
+
+* pip install pip-tools
+* create a file called `requirements.in`
+* add:  `databot-py`
+* pip-compile
+* pip-sync
+
+This will install all of the OS specific versions of libraries.
+
 ## Classes
+![classes](./media/classes.png)
 
 ### PyDatabot
 
