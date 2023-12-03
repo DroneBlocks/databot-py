@@ -51,6 +51,8 @@ This class is used primarily with the databot webserver to provide the latest re
 
 A local web service interface is available to get data values from the databot.
 
+![webarch](./media/webserver_arch.png)
+
 Create an instance of the `PyDatabotSaveToQueueDataCollector` class with the desired sensors configured.  
 
 Then call the function `start_databot_webserver` in the PyDatabot module passing a reference to the `PyDatabotSaveToQueueDataCollector`
