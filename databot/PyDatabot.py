@@ -213,6 +213,24 @@ response_mapping = {
 
 @dataclass(frozen=True)
 class DatabotBLEConfig:
+    """
+    DatabotBLEConfig
+
+    This class represents the configuration for a Databot Bluetooth Low Energy (BLE) device. It contains the UUIDs for the BLE service, read characteristic, and write characteristic.
+
+    Attributes:
+        service_uuid (str): The UUID of the BLE service.
+        read_uuid (str): The UUID of the read characteristic.
+        write_uuid (str): The UUID of the write characteristic.
+
+    Methods:
+        __getitem__(item: str) -> Any:
+            Gets the value of the given attribute.
+
+    Usage:
+        config = DatabotBLEConfig()
+        service_uuid = config['service_uuid']
+    """
     service_uuid: str = "0000ffe0-0000-1000-8000-00805f9b34fb"
     read_uuid: str = "0000ffe1-0000-1000-8000-00805f9b34fb"
     write_uuid: str = "0000ffe2-0000-1000-8000-00805f9b34fb"
@@ -371,6 +389,14 @@ class PyDatabot:
 
     @staticmethod
     def get_databot_address(force_address_read: bool = False):
+        """
+        :param force_address_read: A boolean value indicating whether to force reading the databot address again, even if it already exists.
+        :return: The databot address as a string.
+
+        This method is used to retrieve the databot address either from a previously saved file or by scanning for available devices. If the 'force_address_read' parameter is set to True or
+        * if the databot address file does not exist, the method scans for available devices and saves the databot address to the file. Otherwise, it reads the address from the file and returns
+        * it.
+        """
         async def async_save_databot_address():
             devices = await BleakScanner.discover()
             for d in devices:
@@ -432,6 +458,13 @@ class PyDatabot:
         self.collect_data = False
 
     async def connect(self):
+        """
+
+        Connect to the device and start gathering sensor data.
+
+        :return: None
+
+        """
         self.logger.info("connecting")
         self.device = await BleakScanner(None, [self.ble_config.service_uuid]).find_device_by_address(
             self.databot_config.address)
@@ -490,13 +523,14 @@ class PyDatabot:
 
     def process_databot_data(self, epoch, data):
         """
-        Override this function to custom process databot data
-        :param epoch:
-        :type epoch:
-        :param data:
-        :type data:
-        :return:
-        :rtype:
+        Process the data received from the callback in the DataBot.
+
+        Classes that inherit from PyDatabot should override this method to add custom processing of the databot data
+
+        :param epoch: The epoch timestamp when the data was received.
+        :param data: The data received from the callback.
+        :return: None
+
         """
         self.logger.info("Received callback data via async queue at %s: %r", epoch, data)
 
@@ -593,6 +627,16 @@ class PyDatabotSaveToQueueDataCollector(PyDatabot):
     """
 
     class FixedLengthQueue:
+        """
+        Class representing a fixed length queue.
+
+        :param max_size: The maximum size of the queue.
+        :type max_size: int
+
+        :ivar queue: The underlying deque object used to store the items.
+        :vartype queue: collections.deque
+
+        """
         def __init__(self, max_size):
             self.queue = deque(maxlen=max_size)
 
@@ -668,6 +712,14 @@ def _web_server_worker(host: str, port: int):
 
 def start_databot_webserver(queue_data_collector: PyDatabotSaveToQueueDataCollector,
                             host: str = "localhost", port: int = 8321) -> threading.Thread:
+    """
+    Start the Databot web server.
+
+    :param queue_data_collector: The PyDatabotSaveToQueueDataCollector object that will handle saving data to the queue.
+    :param host: The host address on which the web server will listen. Default is "localhost".
+    :param port: The port number on which the web server will listen. Default is 8321.
+    :return: A threading.Thread object representing the web server thread.
+    """
     global _web_databot, _bottle_app
     _bottle_app = Bottle()
     _web_databot = queue_data_collector
