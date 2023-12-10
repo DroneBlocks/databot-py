@@ -8,7 +8,7 @@ from databot.PyDatabot import PyDatabot
 
 
 def main():
-    print(PyDatabot.get_databot_address())
+    print(PyDatabot.get_databot_address(force_address_read=True))
 
 
 if __name__ == '__main__':
