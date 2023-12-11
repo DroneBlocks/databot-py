@@ -1,5 +1,10 @@
 # databot-py
-A simple bluetooth interface for databot sensors
+
+A bluetooth Python interface for interacting with the databot sensor device.
+
+The classes in this package provide a Pythonic interface for interfacing with the databot sensor device.  These classes allow the user to select different sensors of interest and retrieve the sensor values on a user selected periodic polling frequency.  The sensor values can be returned to the host Python script by either a file, a queue interface, a web service interface, etc.
+
+The `PyDatabot` class provides the foundation for building custom classes to process the data returned from the databot, while the `PyDatabot` class handles all of the setup and data retrieval.
 
 ## Install
 
