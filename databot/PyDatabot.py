@@ -1,20 +1,175 @@
-from dataclasses import dataclass, asdict
 import asyncio
-import logging
-from bleak import BleakClient, BleakScanner, BLEDevice
-import time
 import json
+import logging
+from logging import Logger
+import threading
+import time
+from collections import deque
+from dataclasses import dataclass
 from pathlib import Path
 
+from bleak import BleakClient, BleakScanner, BLEDevice
+from bottle import Bottle, run
+
+_LOGGER: Logger = logging.getLogger(__name__)
 
 class DatabotDeviceNotFoundError(Exception):
     pass
 
+
 class StopGatheringData(Exception):
     pass
 
+
 class ProcessDatabotDataComplete(Exception):
     pass
+
+
+databot_sensors = {
+    'accl': {
+        'sensor_name': 'accl',
+        'friendly_name': 'Acceleration',
+        'save': False,
+        'display': False,
+        'data_columns': ['acceleration_x', 'acceleration_y', 'acceleration_z', 'absolute_acceleration']
+    },
+    'Laccl': {
+        'sensor_name': 'Laccl',
+        'friendly_name': 'Linear Acceleration',
+        'save': False,
+        'display': False,
+        'data_columns': ['linear_acceleration_x', 'linear_acceleration_y', 'linear_acceleration_z',
+                         'absolute_linear_acceleration']
+    },
+    'gyro': {
+        'sensor_name': 'gyro',
+        'friendly_name': 'Gyroscope',
+        'save': False,
+        'display': False,
+        'data_columns': ['gyro_x', 'gyro_y', 'gyro_z']
+    },
+    'magneto': {
+        'sensor_name': 'magneto',
+        'friendly_name': 'Magneto',
+        'save': False,
+        'display': False,
+        'data_columns': ['mag_x', 'mag_y', 'mag_z']
+
+    },
+    # 'IMUTemp': {
+    #     'sensor_name': 'IMUTemp',
+    #     'friendly_name': 'IMU Temperature',
+    #     'save': False,
+    #     'display': False
+    # },
+    'Etemp1': {
+        'sensor_name': 'Etemp1',
+        'friendly_name': 'External Temperature 1',
+        'save': False,
+        'display': False,
+        'data_columns': ['external_temp_1']
+    },
+    'Etemp2': {
+        'sensor_name': 'Etemp2',
+        'friendly_name': 'External Temperature 2',
+        'save': False,
+        'display': False,
+        'data_columns': ['external_temp_2']
+    },
+    'pressure': {
+        'sensor_name': 'pressure',
+        'friendly_name': 'Atmospheric Pressure',
+        'save': False,
+        'display': False,
+        'data_columns': ['pressure']
+    },
+    'alti': {
+        'sensor_name': 'alti',
+        'friendly_name': 'Altimeter',
+        'save': False,
+        'display': False,
+        'data_columns': ['altitude']
+    },
+    'ambLight': {
+        'sensor_name': 'ambLight',
+        'friendly_name': 'Ambient Light',
+        'save': False,
+        'display': False,
+        'data_columns': ['ambient_light_in_lux']
+    },
+    'rgbLight': {
+        'sensor_name': 'rgbLight',
+        'friendly_name': 'RGB Light',
+        'save': False,
+        'display': False,
+        'data_columns': ['r_light', 'g_light', 'b_light']
+    },
+    'UV': {
+        'sensor_name': 'UV',
+        'friendly_name': 'UltraViolet Light',
+        'save': False,
+        'display': False,
+        'data_columns': ['uv_index']
+    },
+    'co2': {
+        'sensor_name': 'co2',
+        'friendly_name': 'CO2',
+        'save': False,
+        'display': False,
+        'data_columns': ['co2']
+    },
+    'voc': {
+        'sensor_name': 'voc',
+        'friendly_name': 'Volatile Organic Compound',
+        'save': False,
+        'display': False,
+        'data_columns': ['voc']
+    },
+    'hum': {
+        'sensor_name': 'hum',
+        'friendly_name': 'Humidity',
+        'save': False,
+        'display': False,
+        'data_columns': ['humidity']
+    },
+    'humTemp': {
+        'sensor_name': 'humTemp',
+        'friendly_name': 'Humidity Adjusted Temperature',
+        'save': False,
+        'display': False,
+        'data_columns': ['humidity_temperature']
+    },
+    # 'Sdist': {
+    #     'sensor_name': 'Sdist',
+    #     'friendly_name': 'Short Distance',
+    #     'save': False,
+    #     'display': False,
+    #     'data_columns': ['distance']
+    # },
+    'noise': {
+        'sensor_name': 'noise',
+        'friendly_name': 'Noise',
+        'save': False,
+        'display': False,
+        'data_columns': ['noise_sound']
+    },
+    'Ldist': {
+        'sensor_name': 'Ldist',
+        'friendly_name': 'Long Distance',
+        'save': False,
+        'display': False,
+        'data_columns': ['distance']
+
+    },
+    'gesture': {
+        'sensor_name': 'gesture',
+        'friendly_name': 'Gesture',
+        'save': False,
+        'display': False,
+        'data_columns': ['gesture']
+    },
+
+}
 
 response_mapping = {
     "a": "acceleration_x",
@@ -58,6 +213,24 @@ response_mapping = {
 
 @dataclass(frozen=True)
 class DatabotBLEConfig:
+    """
+    DatabotBLEConfig
+
+    This class represents the configuration for a Databot Bluetooth Low Energy (BLE) device. It contains the UUIDs for the BLE service, read characteristic, and write characteristic.
+
+    Attributes:
+        service_uuid (str): The UUID of the BLE service.
+        read_uuid (str): The UUID of the read characteristic.
+        write_uuid (str): The UUID of the write characteristic.
+
+    Methods:
+        __getitem__(item: str) -> Any:
+            Gets the value of the given attribute.
+
+    Usage:
+        config = DatabotBLEConfig()
+        service_uuid = config['service_uuid']
+    """
     service_uuid: str = "0000ffe0-0000-1000-8000-00805f9b34fb"
     read_uuid: str = "0000ffe1-0000-1000-8000-00805f9b34fb"
     write_uuid: str = "0000ffe2-0000-1000-8000-00805f9b34fb"
@@ -202,29 +375,38 @@ class PyDatabot:
         run(self)
             Runs the PyDatabot synchronously.
     """
+
     def __init__(self, databot_config: DatabotConfig, log_level: int = logging.INFO):
         self.collect_data: bool = False
         self.device: BLEDevice | None = None
         self.databot_config: DatabotConfig = databot_config
         self.ble_config: DatabotBLEConfig = DatabotBLEConfig()
         self.queue: asyncio.Queue = asyncio.Queue()
-        self.logger: logging = logging.getLogger(__name__)
+        self.logger: Logger = _LOGGER
         logging.basicConfig(level=log_level)
         if databot_config.address is None or databot_config.address == "":
             raise ValueError("DatabotConfig must have the address property set.")
 
     @staticmethod
-    def get_databot_address(force_address_read:bool = False):
+    def get_databot_address(force_address_read: bool = False):
+        """
+        :param force_address_read: A boolean value indicating whether to force reading the databot address again, even if it already exists.
+        :return: The databot address as a string.
+
+        This method is used to retrieve the databot address either from a previously saved file or by scanning for available devices. If the 'force_address_read' parameter is set to True or
+        * if the databot address file does not exist, the method scans for available devices and saves the databot address to the file. Otherwise, it reads the address from the file and returns
+        * it.
+        """
         async def async_save_databot_address():
             devices = await BleakScanner.discover()
             for d in devices:
                 if d.name == "DB_databot":
-                    print(f"Databot Address: {d.address}")
+                    _LOGGER.debug(f"Databot Address: {d.address}")
                     with open("./databot_address.txt", "w") as f:
                         f.write(d.address)
                     break
             else:
-                print("The DB_databot device could not be found.  Be sure it is powered on")
+                _LOGGER.warning("The DB_databot device could not be found.  Be sure it is powered on")
 
         if force_address_read or not Path("./databot_address.txt").exists():
             asyncio.run(async_save_databot_address())
@@ -276,6 +458,13 @@ class PyDatabot:
         self.collect_data = False
 
     async def connect(self):
+        """
+
+        Connect to the device and start gathering sensor data.
+
+        :return: None
+
+        """
         self.logger.info("connecting")
         self.device = await BleakScanner(None, [self.ble_config.service_uuid]).find_device_by_address(
             self.databot_config.address)
@@ -334,13 +523,14 @@ class PyDatabot:
 
     def process_databot_data(self, epoch, data):
         """
-        Override this function to custom process databot data
-        :param epoch:
-        :type epoch:
-        :param data:
-        :type data:
-        :return:
-        :rtype:
+        Process the data received from the callback in the DataBot.
+
+        Classes that inherit from PyDatabot should override this method to add custom processing of the databot data
+
+        :param epoch: The epoch timestamp when the data was received.
+        :param data: The data received from the callback.
+        :return: None
+
         """
         self.logger.info("Received callback data via async queue at %s: %r", epoch, data)
 
@@ -387,6 +577,7 @@ class PyDatabotSaveToFileDataCollector(PyDatabot):
         process_databot_data(self, epoch, data)
             Processes the data received from the PyDatabot and saves it to the file.
     """
+
     def __init__(self, databot_config: DatabotConfig, file_name: str, extra_data: dict | None = None,
                  number_of_records_to_collect: int | None = None, log_level: int = logging.INFO):
         super().__init__(databot_config, log_level)
@@ -413,6 +604,132 @@ class PyDatabotSaveToFileDataCollector(PyDatabot):
             if self.number_of_records_to_collect is not None:
                 if self.record_number >= self.number_of_records_to_collect:
                     raise ProcessDatabotDataComplete("Done collecting data")
+
+
+class PyDatabotSaveToQueueDataCollector(PyDatabot):
+    """
+    SaveToQueueDatabotCollector
+
+    A class that collects data from a PyDatabot and saves it to an internal Queue.
+
+    Attributes:
+        extra_data (dict): Additional data to be added as new columns to the data being collected.
+        number_of_records_to_collect (int | None): The maximum number of records to collect. If None, collect indefinitely.
+        queue_size (int): The depth of the queue. By default the depth is one, meaning it only holds the very latest value.
+
+    Methods:
+        __init__(self, databot_config: DatabotConfig, file_name: str, extra_data: dict,
+                 number_of_records_to_collect: int | None = None, log_level: int = logging.INFO)
+            Initializes a new instance of SaveToFileDatabotCollector.
+
+        process_databot_data(self, epoch, data)
+            Processes the data received from the PyDatabot and saves it to the file.
+    """
+
+    class FixedLengthQueue:
+        """
+        Class representing a fixed length queue.
+
+        :param max_size: The maximum size of the queue.
+        :type max_size: int
+
+        :ivar queue: The underlying deque object used to store the items.
+        :vartype queue: collections.deque
+
+        """
+        def __init__(self, max_size):
+            self.queue = deque(maxlen=max_size)
+
+        def add(self, item):
+            self.queue.append(item)
+
+        def display(self):
+            return list(self.queue)
+
+        def get_latest(self):
+            if self.queue:  # check if queue is not empty
+                return self.queue[-1]  # get the last item
+            else:
+                return None  # return None if the queue is empty
+
+
+    def __init__(self, databot_config: DatabotConfig, extra_data: dict | None = None,
+                 queue_size: int = 1,
+                 number_of_records_to_collect: int | None = None,
+                 log_level: int = logging.INFO):
+        super().__init__(databot_config, log_level)
+
+        self.record_number = 0
+        self.queue_size = queue_size
+        self.q = PyDatabotSaveToQueueDataCollector.FixedLengthQueue(max_size=queue_size)
+        self.extra_data = extra_data
+        self.number_of_records_to_collect = number_of_records_to_collect
+
+    def process_databot_data(self, epoch, data):
+        data['timestamp'] = epoch
+
+        if self.extra_data is not None:
+            data.update(**self.extra_data)
+
+        item = json.dumps(data)
+        self.q.add(item)
+        self.logger.info(f"Time: {data['time']} - Queued record[{self.record_number}]")
+        self.logger.debug(f"Record Details: {item}")
+        self.record_number = self.record_number + 1
+        if self.number_of_records_to_collect is not None:
+            if self.record_number >= self.number_of_records_to_collect:
+                raise ProcessDatabotDataComplete("Done collecting data")
+
+    def get_item(self):
+        """
+        Get the oldest item from the queue
+        :return: JSON data record from the databot
+        """
+        try:
+            item = self.q.get_latest()
+            return item
+        except:
+            return None
+
+
+# private reference to the queue based databot collector
+# used by the web server to retrieve databot data
+_web_databot: PyDatabotSaveToQueueDataCollector|None = None
+_bottle_app = None
+
+def _databot_index():
+    if _web_databot is None:
+        return {
+            "message": "reference to PyDatabotSaveToQueueDataCollector is None"
+        }
+
+    item = _web_databot.get_item()
+    return item
+
+
+def _web_server_worker(host: str, port: int):
+    run(_bottle_app, host=host, port=port)
+
+
+def start_databot_webserver(queue_data_collector: PyDatabotSaveToQueueDataCollector,
+                            host: str = "localhost", port: int = 8321) -> threading.Thread:
+    """
+    Start the Databot web server.
+
+    :param queue_data_collector: The PyDatabotSaveToQueueDataCollector object that will handle saving data to the queue.
+    :param host: The host address on which the web server will listen. Default is "localhost".
+    :param port: The port number on which the web server will listen. Default is 8321.
+    :return: A threading.Thread object representing the web server thread.
+    """
+    global _web_databot, _bottle_app
+    _bottle_app = Bottle()
+    _web_databot = queue_data_collector
+    _bottle_app.route(path="/", method="GET", callback=_databot_index)
+
+    t = threading.Thread(target=_web_server_worker, args=(host, port,), daemon=True)
+    t.start()
+
+    return t
 
 
 def main():

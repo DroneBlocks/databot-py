@@ -36,13 +36,10 @@ class SaveToFileDatabotCollector(PyDatabot):
 
 
 def main():
-    with open("./databot_address.txt", "r") as f:
-        databot_address = f.read()
-
     c = DatabotConfig()
     c.Laccl = True
     c.refresh=100
-    c.address = databot_address
+    c.address = PyDatabot.get_databot_address()
     db = SaveToFileDatabotCollector(c)
     db.run()
 

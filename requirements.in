@@ -1,6 +1,6 @@
-bleak==0.19.5
+bleak==0.21.1
 pandas
 jupyter
 scikit-learn
 seaborn
-asyncpg
+bottle

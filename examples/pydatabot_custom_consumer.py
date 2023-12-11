@@ -15,12 +15,9 @@ class CustomPyDatabotConsumer(PyDatabot):
 
 
 def main():
-    with open("./databot_address.txt", "r") as f:
-        databot_address = f.read()
-
     c = DatabotConfig()
     c.Laccl = True
-    c.address = databot_address
+    c.address = PyDatabot.get_databot_address()
     db = CustomPyDatabotConsumer(c)
     db.run()
 
