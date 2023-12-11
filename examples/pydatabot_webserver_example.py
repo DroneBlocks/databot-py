@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import sys
 
@@ -17,10 +18,11 @@ def main():
     c.hum = True
     c.pressure = True
     c.Etemp1 = True
+    c.Etemp2 = True
     c.voc = True
     c.refresh = 1000
     c.address = PyDatabot.get_databot_address()
-    db = PyDatabotSaveToQueueDataCollector(c)
+    db = PyDatabotSaveToQueueDataCollector(c, log_level=logging.DEBUG)
 
     t =start_databot_webserver(queue_data_collector=db, host="localhost", port=8321)
     db.run()

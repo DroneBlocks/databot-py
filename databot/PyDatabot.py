@@ -674,6 +674,7 @@ class PyDatabotSaveToQueueDataCollector(PyDatabot):
         item = json.dumps(data)
         self.q.add(item)
         self.logger.info(f"Time: {data['time']} - Queued record[{self.record_number}]")
+        self.logger.debug(f"Record Details: {item}")
         self.record_number = self.record_number + 1
         if self.number_of_records_to_collect is not None:
             if self.record_number >= self.number_of_records_to_collect:
