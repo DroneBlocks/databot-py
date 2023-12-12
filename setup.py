@@ -22,6 +22,6 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=[
-        'bleak==0.19.5'
+        'bleak==0.21.1'
     ]
 )
