@@ -8,6 +8,11 @@ from databot.PyDatabot import PyDatabot, DatabotConfig
 
 
 def main():
+    """
+    An example of how to collect the Ambient Light values from the databot using the PyDatabot API
+
+    :return: None
+    """
     c = DatabotConfig()
     c.ambLight = True
     c.address = PyDatabot.get_databot_address()

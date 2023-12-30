@@ -8,6 +8,13 @@ from databot.PyDatabot import PyDatabot, DatabotConfig
 
 
 def main():
+    """
+    :return: None
+    An example of how to collect the Humidity and Temperature values from the databot using the PyDatabot API
+
+    This method is the entry point for the program. It initializes a DatabotConfig object with the desired configuration
+    settings. It then creates a PyDatabot object using the config object and runs the databot.
+    """
     c = DatabotConfig()
     c.humTemp = True
     c.refresh = 2000 # change the refresh rate to every 2 seconds
