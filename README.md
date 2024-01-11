@@ -1,10 +1,16 @@
 # databot-py
 
-A bluetooth Python interface for interacting with the databot sensor device.
+The databot-py python package contains a bluetooth Python interface for interacting with the databot sensor device.
 
 The classes in this package provide a Pythonic interface for interfacing with the databot sensor device.  These classes allow the user to select different sensors of interest and retrieve the sensor values on a user selected periodic polling frequency.  The sensor values can be returned to the host Python script by either a file, a queue interface, a web service interface, etc.
 
 The `PyDatabot` class provides the foundation for building custom classes to process the data returned from the databot, while the `PyDatabot` class handles all of the setup and data retrieval.
+
+## Github Repository
+
+The github repository for the databot-py Python package can be found at the following url:
+
+* https://github.com/dbaldwin/databot-py
 
 ## Install
 
@@ -107,11 +113,55 @@ For an example and test of how to do this see:
 
 `examples/pydatabot_custom_consumer.py`
 
+```python
+from databot.PyDatabot import PyDatabot, DatabotConfig
+
+
+class CustomPyDatabotConsumer(PyDatabot):
+
+    def process_databot_data(self, epoch, data):
+        self.logger.info(f"{data}")
+        self.logger.info(f"Linear Acceleration: {data['linear_acceleration_x']}, {data['linear_acceleration_y']}, {data['linear_acceleration_z']}")
+
+
+def main():
+    c = DatabotConfig()
+    c.Laccl = True
+    c.address = PyDatabot.get_databot_address()
+    db = CustomPyDatabotConsumer(c)
+    db.run()
+
+
+if __name__ == '__main__':
+    main()
+
+```
+
 ### Save databot data to file
 
 This example shows how to write the collected values to a file for later processing
 
 `examples/pydatabot_save_data_to_file.py`
+
+```python
+from databot.PyDatabot import PyDatabot, DatabotConfig, PyDatabotSaveToFileDataCollector
+
+
+def main():
+    c = DatabotConfig()
+    c.accl = True
+    c.Laccl = True
+    c.gyro = True
+    c.magneto = False
+    c.address = PyDatabot.get_databot_address()
+    db = PyDatabotSaveToFileDataCollector(c, file_name="data/test_data.txt", number_of_records_to_collect=10)
+    db.run()
+
+
+if __name__ == '__main__':
+    main()
+
+```
 
 ### View Ambient Light Sensor Values
 
@@ -121,12 +171,56 @@ Notice the light level values goes down.
 
 `examples/pydatabot_light_level_example.py`
 
+```python
+from databot.PyDatabot import PyDatabot, DatabotConfig
+
+
+def main():
+    """
+    An example of how to collect the Ambient Light values from the databot using the PyDatabot API
+
+    :return: None
+    """
+    c = DatabotConfig()
+    c.ambLight = True
+    c.address = PyDatabot.get_databot_address()
+    db = PyDatabot(c)
+    db.run()
+
+
+if __name__ == '__main__':
+    main()
+
+```
+
 ### Breath Detector
 
 This example shows how to read co2 level.  Start the example and then breath on the databot.
 Watch the co2 values go up. 
 
-`examples/pydatabot_light_level_example.py`
+`examples/pydatabot_co2_level_example.py`
+
+```python
+from databot.PyDatabot import PyDatabot, DatabotConfig
+
+
+def main():
+    """
+    An example of how to collect CO2 values from the databot using the PyDatabot API.
+
+    :return: None
+    """
+    c = DatabotConfig()
+    c.co2 = True
+    c.address = PyDatabot.get_databot_address()
+    db = PyDatabot(c)
+    db.run()
+
+
+if __name__ == '__main__':
+    main()
+
+```
 
 ### Databot WebServer Access
 
@@ -134,7 +228,102 @@ This example shows how to start a simple webserver interface to get the current 
 
 `examples/pydatabot_webserver_example.py`
 
+```python
+import logging
+from databot.PyDatabot import start_databot_webserver, PyDatabot, PyDatabotSaveToQueueDataCollector, DatabotConfig
+
+def main():
+    c = DatabotConfig()
+    c.accl = True
+    c.Laccl = True
+    c.gyro = True
+    c.magneto = True
+    c.ambLight = True
+    c.co2 = True
+    c.hum = True
+    c.pressure = True
+    c.Etemp1 = True
+    c.Etemp2 = True
+    c.voc = True
+    c.refresh = 1000
+    c.address = PyDatabot.get_databot_address()
+    db = PyDatabotSaveToQueueDataCollector(c, log_level=logging.DEBUG)
+
+    t =start_databot_webserver(queue_data_collector=db, host="localhost", port=8321)
+    db.run()
+
+
+if __name__ == '__main__':
+    main()
+
+```
+
 You can then open a browser and navigate to:
 `http://localhost:8321`
 
 And the sensor values will be displayed as a JSON string.
+
+### Databot Save data to Queue
+
+This example shows how to use the PyDatabotSaveToQueueDataCollector class to collect databot sensor values in an in memory queue.
+
+This is particularly useful if you need to have access to the latest databot sensor values, but do not need to store the values in a file.
+
+`examples/pydatabot_webserver_example.py`
+
+```python
+import threading
+import time
+from databot.PyDatabot import PyDatabot, PyDatabotSaveToQueueDataCollector, DatabotConfig
+
+
+def worker(pydb: PyDatabotSaveToQueueDataCollector, wait_time_in_sec:int):
+    while True:
+        item = pydb.get_item()
+        print(f'Data Item: {item}')
+        time.sleep(wait_time_in_sec)
+
+
+def main():
+
+    c = DatabotConfig()
+    c.accl = True
+    c.Laccl = True
+    c.gyro = True
+    c.magneto = True
+    c.address = PyDatabot.get_databot_address()
+    db = PyDatabotSaveToQueueDataCollector(c)
+
+    threading.Thread(target=worker, args=(db,0.5), daemon=True).start()
+
+    db.run()
+
+
+if __name__ == '__main__':
+    main()
+
+```
+
+## Available Sensor Names
+
+The names of the sensors that the PyDatabot class can retrieve are the following:
+
+* Acceleration
+* Altimeter
+* Ambient Light
+* Atmospheric Pressure
+* CO2
+* External Temperature 1
+* External Temperature 2
+* Gesture
+* Gyroscope
+* Humidity
+* Humidity Adjusted Temperature
+* Linear Acceleration
+* Long Distance
+* Magneto
+* Noise
+* RGB Light
+* UltraViolet Light
+* Volatile Organic Compound
+
