@@ -14,24 +14,14 @@ The github repository for the databot-py Python package can be found at the foll
 
 ## Install
 
-It is recommended that you use a package manager like `pip-tools` or `poetry` and do not rely on a existing requirements.txt
+### Install Local Requirements
 
-The reason is that operating system dependent libraries need to be installed to support bluetooth.
+Recommended steps to install locally
 
-Basic installation, just pip install the `databot-py` package from PyPI.
+* `pip install pip-tools` or `python -m pip install pip-tools`
+* `pip-compile`
+* `pip-sync`
 
-e.g.
-`pip install databot-py`
-
-If using pip-tools in your project then 
-
-* pip install pip-tools
-* create a file called `requirements.in`
-* add:  `databot-py`
-* pip-compile
-* pip-sync
-
-This will install all of the OS specific versions of libraries.
 
 ## Classes
 ![classes](./media/classes.png)
@@ -72,15 +62,6 @@ See the example in:
 
 `examples/pydatabot_webserver_example.py`
 
-## Run Locally
-
-### Install Local Requirements
-
-Recommended steps to install locally
-
-* `pip install pip-tools` or `python -m pip install pip-tools`
-* `pip-compile`
-* `pip-sync`
 
 ## Examples
 
